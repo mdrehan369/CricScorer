@@ -3,8 +3,9 @@ import customtkinter as t
 from PIL import Image
 from tkinter.filedialog import askopenfilename
 from tkinter import messagebox as Message
-import DBmanager as db
+import DBmanager as database
 import re
+
 # import tkinter as tk
 
 dark_green = '#00e600'
@@ -25,9 +26,24 @@ def getImage(file, resize=None, decode=False):
 
 def newPlayer(master):
 
+    def allclear():
+
+        firstName.set('')
+        middleName.set('')
+        lastName.set('')
+        gender.set('')
+        role.set('Select Role')
+        bowling_arm.set('')
+        bowling_action.set('Select Bowling Action')
+        batting_arm.set('')
+        number.delete(0, t.END)
+        number.insert(0, '')
+        profile_picture.set('')
+        profile_pic.configure(image=getImage('icons/user.png', resize=(170,170)))
+
+
     def savedata():
         
-        # if((firstName.get() == '') or (gender.get() == '') or (role.get() == 'Select Role') or (batting_arm.get() == '') or (bowling_arm.get() == '') or (bowling_action.get() == 'Select Bowling Action')):
 
         if(firstName.get() == ''):
             Message.showerror(title='Error in saving', message='First Name is required. Please enter the first name')
@@ -50,6 +66,8 @@ def newPlayer(master):
         if(re.match(r'[0-9]{10}', number.get()) is None):
             Message.showerror(title='Error in saving', message='Please enter correct mobile number')
             return
+        
+        db = database.DataBase('mongodb://localhost:27017')
         if(db.searchplayer(number.get()) is not None):
             Message.showerror(title='Error in saving', message='The number is already taken')
             return
@@ -63,26 +81,30 @@ def newPlayer(master):
             'bowlingarm' : bowling_arm.get(),
             'bowlingaction' : bowling_action.get(),
             'battingarm' : batting_arm.get(),
-            'mobilenumber' : number.get()
+            'mobilenumber' : number.get(),
+            'profilepicture' : profile_picture.get()
         }
 
-        db.addPlayer(data)
+        db.addplayer(data)
 
-        print('uploaded')
+        allclear()
 
-
+        Message.showinfo('Succesfull', 'Player added successfully')
         
 
     def changepic():
 
         file = askopenfilename(filetypes=(['JPG','*.jpg'], ['JPEG','*.jpeg'], ['PNG','*.png']))
-        profile_pic.configure(image = getImage(file, resize=(170,170)))
-        remove_profile.place_configure(relx=0.5, rely=0.8, relwidth=0.4, relheight=0.1, anchor='center')
+        if(file is not None):
+            profile_picture.set(file)
+            profile_pic.configure(image = getImage(file, resize=(170,170)))
+            remove_profile.place_configure(relx=0.5, rely=0.8, relwidth=0.4, relheight=0.1, anchor='center')
 
     def removepic():
 
         profile_pic.configure(image = getImage('icons/user.png', (170,170)))
         remove_profile.place_forget()
+        profile_picture.set('')
 
     for widget in master.winfo_children():
         widget.destroy()
@@ -117,6 +139,7 @@ def newPlayer(master):
     bowling_arm = t.StringVar()
     actions = ['Fast', 'Medium', 'Seam', 'Spin']
     bowling_action = t.StringVar(value='Select Bowling Action')
+    profile_picture = t.StringVar()
 
     t.CTkLabel(infoframe, text='First Name* : ', font=t.CTkFont(family='roboto', size=18), text_color='black').place(relx=0.1, rely=0.1)
     t.CTkLabel(infoframe, text='Middle Name : ', font=t.CTkFont(family='roboto', size=18), text_color='black').place(relx=0.1, rely=0.17)
@@ -163,6 +186,12 @@ def newPlayer(master):
 
     t.CTkButton(infoframe, text='Save', border_color='gray', fg_color=light_green, hover_color=dark_green, corner_radius=5, command=savedata, border_width=2, font=t.CTkFont(family='roboto', size= 18), text_color='black').place(relx=0.5, rely=0.8, relwidth=0.15, relheight=0.08, anchor='center')
 
+
+def viewPlayer(master):
+    pass
+
+
+
 class App(t.CTk):
 
     def __init__(self, width, height, title):
@@ -184,9 +213,12 @@ class App(t.CTk):
         def focus(i):
             self.indicator.place_configure(rely=i*0.1)
 
-        def changeheading(heading):
+        def changepage(heading, fn, mainframe):
+            if(self.curr_frame.get() == heading):
+                return
+            
             self.curr_frame.set(heading)
-
+            fn(mainframe)
 
 
         #Creating frames and basic layout
@@ -201,7 +233,7 @@ class App(t.CTk):
         heading_label.place(relx = 0.5, rely = 0.2)
 
         menu_btn = t.CTkButton(top_frame, image=getImage('icons/menu.png'), text='', width=10, command=openSidebar, fg_color=light_green, hover_color=dark_green, border_width=0, border_color='black',bg_color=dark_green)
-        menu_btn.place(relx= 0.01, rely= 0.09)
+        menu_btn.place(relx= 0.01, rely= 0.15)
     
         x_btn = t.CTkButton(side_frame, image=getImage('icons/close.png'), text='', command=hideSidebar, width=10, fg_color=light_green, hover_color=dark_green, border_width=0, border_color='black',bg_color=dark_green)
         x_btn.place(relx=0.8, rely=0.01)
@@ -224,7 +256,7 @@ class App(t.CTk):
         new_match.place(relx=0.2, rely=i*0.1)
         i += 0.65
 
-        new_player = t.CTkButton(side_frame, text='New Player', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/newplayer.png'),command=lambda:[focus(3.3), newPlayer(main_frame), changeheading('New Player')])
+        new_player = t.CTkButton(side_frame, text='New Player', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/newplayer.png'),command=lambda:[focus(3.3), changepage('New Player', newPlayer, main_frame)])
         new_player.place(relx=0.2, rely=i*0.1)
         i += 0.65
 
@@ -232,7 +264,7 @@ class App(t.CTk):
         new_team.place(relx=0.2, rely=i*0.1)
         i += 0.65
 
-        view_player = t.CTkButton(side_frame, text='View Player', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/viewplayer.png'),command=lambda:focus(4.6))
+        view_player = t.CTkButton(side_frame, text='View Player', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/viewplayer.png'),command=lambda:[focus(4.6), changepage('View Player', viewPlayer, main_frame)])
         view_player.place(relx=0.2, rely=i*0.1)
         i += 0.65
 
