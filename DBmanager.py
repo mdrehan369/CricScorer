@@ -1,6 +1,7 @@
 import pymongo
 from PIL import Image
 import io
+import gridfs
 # import os
 # import re
 
@@ -38,19 +39,41 @@ class DataBase():
             players.insert_one(data)
             return
         
-        image = Image.open(data['profilepicture'])
-        bytes_obj = io.BytesIO()
-        # fullpath = os.path.abspath()
-        # extension = re.match(r'')
-        image.save(bytes_obj, format='JPEG')
-        data['image'] = bytes_obj.getvalue()
+        # image = Image.open(data['profilepicture'])
+        # bytes_obj = io.BytesIO()
+        # image.save(bytes_obj, format='JPEG')
+        # data['image'] = bytes_obj.getvalue()
+
+        grid_obj = gridfs.GridFS(self.database)
+
+        with open(data['profilepicture'], 'rb') as f:
+            contents = f.read()
+        
+        image_id = grid_obj.put(contents)
+        data['image_id'] = image_id
 
         players.insert_one(data)
 
+    def getplayers(self):
 
+        players = self.database['players'].find({})
+        grid_obj = gridfs.GridFS(self.database)
+        # fs = self.database['fs.files']
+        data = []
 
+        for index, player in enumerate(players):
+            if(player['profilepicture'] != ''):
+                image_id = player['image_id']
+                output = grid_obj.get(image_id).read()
+                with open(f'images/image{index}.jpg', 'wb') as f:
+                    f.write(output)
+                player['profilepicture'] = f'images/image{index}.jpg'
 
+            data.append(player)
 
+        return data
         
+    def searchplayer(self, number):
+        return self.database['players'].find_one({'mobilenumber' : number})
 
     

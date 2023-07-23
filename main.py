@@ -5,15 +5,15 @@ from tkinter.filedialog import askopenfilename
 from tkinter import messagebox as Message
 import DBmanager as database
 import re
-
-# import tkinter as tk
+# import matplotlib.pyplot as plt
+import tkinter as tk
 
 dark_green = '#00e600'
 light_green = '#66ff66'
 
 
 
-def getImage(file, resize=None, decode=False):
+def getImage(file, resize=None):
 
     img = Image.open(file)
     if(resize is not None):
@@ -23,6 +23,19 @@ def getImage(file, resize=None, decode=False):
     
     return image
 
+def showplayer(e, master, frame_to_number):
+    number = frame_to_number[e.widget]
+    db = database.DataBase('mongodb://localhost:27017')
+    data = db.searchplayer(number=number)
+
+    for widget in master.winfo_children():
+        widget.destroy()
+
+    mainframe = t.CTkFrame(master=master, border_width=3, border_color='gray', corner_radius=30).place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.95, anchor='center')
+    back_btn = t.CTkButton(master=mainframe, text='',image=getImage('icons/arrow.png'), width=10, border_width=0, command=lambda :viewPlayer(master), fg_color=light_green, hover_color=dark_green)
+    back_btn.place(relx=0.2, rely = 0.2, anchor='center')
+
+    t.CTkLabel(master=mainframe, text='hello').place(relx = 0.1, rely=0.1, anchor='center')
 
 def newPlayer(master):
 
@@ -40,6 +53,7 @@ def newPlayer(master):
         number.insert(0, '')
         profile_picture.set('')
         profile_pic.configure(image=getImage('icons/user.png', resize=(170,170)))
+        remove_profile.place_forget()
 
 
     def savedata():
@@ -95,7 +109,7 @@ def newPlayer(master):
     def changepic():
 
         file = askopenfilename(filetypes=(['JPG','*.jpg'], ['JPEG','*.jpeg'], ['PNG','*.png']))
-        if(file is not None):
+        if(file is not None and file != ''):
             profile_picture.set(file)
             profile_pic.configure(image = getImage(file, resize=(170,170)))
             remove_profile.place_configure(relx=0.5, rely=0.8, relwidth=0.4, relheight=0.1, anchor='center')
@@ -188,8 +202,65 @@ def newPlayer(master):
 
 
 def viewPlayer(master):
-    pass
 
+    def changefg(e, what):
+        if(what == True):
+            e.widget.configure(bg = light_green, borderwidth=3)
+        else:
+            e.widget.configure(bg = '#ffffff', borderwidth=1)
+
+
+
+    for widget in master.winfo_children():
+        widget.destroy()
+
+    
+    main_frame = t.CTkFrame(master=master, border_width=3, border_color='gray', corner_radius=30)
+    main_frame.place(relx=0.5, rely=0.5, anchor='center', relwidth= 0.95, relheight= 0.95)
+
+    search_bar = t.CTkEntry(main_frame, border_width=2, border_color='gray', corner_radius=5, placeholder_text='Enter Mobile Number Or Name', font=t.CTkFont(family='arial', size=16))
+    search_bar.place(relx=0.45, rely=0.1, anchor='center', relwidth= 0.6, relheight= 0.06)
+
+    t.CTkButton(main_frame, image=getImage('icons/search.png'), fg_color=light_green, text='', hover_color=dark_green, border_color='gray', border_width=2).place(relx=0.78, rely=0.1, relwidth=0.05, relheight=0.06, anchor='center')
+
+    db = database.DataBase('mongodb://localhost:27017')
+    players = db.getplayers()
+
+    viewframe = t.CTkFrame(main_frame, border_width=2, border_color='gray', corner_radius=10)
+    viewframe.place(relx=0.5, rely=0.55, relwidth=0.95, relheight=0.8, anchor='center')
+
+    row = 1
+    col = 1
+    frame_to_number = {}
+    frames = []
+
+    for player in players:
+        frame = tk.Frame(viewframe, borderwidth=1, relief='sunken')
+        frame.place(relx=col*0.125, rely=row*0.125, anchor='center', relwidth=0.23, relheight= 0.23)
+        col += 2
+        if(col == 9):
+            col = 1
+            row += 2
+
+        if(player['profilepicture'] != ""):
+            t.CTkLabel(frame, image=getImage(player['profilepicture'], resize=(100, 100)), corner_radius=100, text='').pack(side='left', anchor='center', padx=2)
+
+        else:
+            t.CTkLabel(frame, image=getImage('icons/user.png', resize=(100, 100)), corner_radius=100, text='').pack(side='left', anchor='center', padx=2)
+
+        t.CTkLabel(frame, text=f"{player['firstname']}\n{player['role']}\n{player['mobilenumber']}", font=t.CTkFont(family='roboto', size=13), compound='center').pack(anchor='center', side='left', padx=5)
+
+        frames.append(frame)
+        frame_to_number[frame] = player['mobilenumber']
+
+    for frame in frames:
+        frame.bind('<Enter>', lambda e : changefg(e,True))
+        frame.bind('<Leave>', lambda e : changefg(e,False))
+        frame.bind('<Button-1>', lambda e : showplayer(e, master, frame_to_number))
+        
+    
+
+    
 
 
 class App(t.CTk):
