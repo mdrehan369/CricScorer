@@ -5,13 +5,16 @@ from tkinter.filedialog import askopenfilename
 from tkinter import messagebox as Message
 import DBmanager as database
 import re
-# import matplotlib.pyplot as plt
 import tkinter as tk
 
 dark_green = '#00e600'
 light_green = '#66ff66'
 
+t.set_appearance_mode('light')
 
+isupdated = True
+players = None
+db = database.DataBase('mongodb://localhost:27017')
 
 def getImage(file, resize=None):
 
@@ -23,22 +26,74 @@ def getImage(file, resize=None):
     
     return image
 
-def showplayer(e, master, frame_to_number):
-    number = frame_to_number[e.widget]
-    db = database.DataBase('mongodb://localhost:27017')
-    data = db.searchplayer(number=number)
-
+def displayplayer(master, data):
     for widget in master.winfo_children():
         widget.destroy()
 
     mainframe = t.CTkFrame(master=master, border_width=3, border_color='gray', corner_radius=30)
     mainframe.place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.95, anchor='center')
     back_btn = t.CTkButton(master=mainframe, text='',image=getImage('icons/arrow.png'), width=10, border_width=0, command=lambda :[mainframe.destroy, viewPlayer(master)], fg_color=light_green, hover_color=dark_green)
-    back_btn.place(relx=0.2, rely = 0.2, anchor='center')
+    back_btn.place(relx=0.05, rely = 0.05, anchor='center')
 
-    t.CTkLabel(master=mainframe, text='hello').place(relx = 0.1, rely=0.1, anchor='center')
+    if(data['profilepicture'] != ''):
+        t.CTkLabel(master=mainframe, image=getImage(data['profilepicture'], resize=(200, 200)), text='').place(relx = 0.5, rely=0.2, anchor='center')
+    else:
+        t.CTkLabel(master=mainframe, image=getImage('icons/user.png', resize=(200, 200)), text='').place(relx = 0.5, rely=0.2, anchor='center')
+    secondFrame = t.CTkFrame(mainframe, border_width=3, border_color='gray', corner_radius=10)
+    secondFrame.place(relx=0.5, rely=0.7, relwidth=0.65, relheight=0.5, anchor='center')
+
+    secondFrame.columnconfigure(0, weight=40)
+    secondFrame.columnconfigure(1, weight=60)
+
+    for i in range(0,11):
+        secondFrame.rowconfigure(i, weight=10)
+
+    t.CTkLabel(secondFrame, text=data['firstname'] +" "+data['middlename']+" "+data['lastname'],font=t.CTkFont(family='lucida', size=16), anchor='w').grid(row=1,column=0)
+    t.CTkLabel(secondFrame, text=f"Gender : {data['gender']}",font=t.CTkFont(family='lucida', size=16),anchor='w').grid(row=2,column=0)
+    t.CTkLabel(secondFrame, text=data['role'],font=t.CTkFont(family='lucida', size=16)).grid(row=3,column=0)
+    t.CTkLabel(secondFrame, text=f"Bowling Arm : {data['bowlingarm']}",font=t.CTkFont(family='lucida', size=16)).grid(row=4,column=0)
+    t.CTkLabel(secondFrame, text=f"Bowling Action : {data['bowlingaction']}",font=t.CTkFont(family='lucida', size=16)).grid(row=5,column=0)
+    t.CTkLabel(secondFrame, text=f"batting Arm : {data['battingarm']}",font=t.CTkFont(family='lucida', size=16)).grid(row=6,column=0)
+    t.CTkLabel(secondFrame, text=data['mobilenumber'],font=t.CTkFont(family='lucida', size=16)).grid(row=7,column=0)
+
+
+def showplayer(e, master, frame_to_number):
+    number = frame_to_number[e.widget]
+    data = db.searchplayer(number=number)
+    displayplayer(master, data)
+
+def search(query, master):
+    # query = search_bar.get()
+    if(db.searchplayer(query) == None):
+        Message.showerror(title='Player Not Found', message='No player found. \nPlease enter the correct and valid mobile number.')
+    else:
+        displayplayer(master, db.searchplayer(query))
+
+# def editPlayer(master):
+#     data = None
+
+
+#     def search(e):
+#         global data
+#         query = searchbar.get()
+#         player = db.searchplayer(query)
+#         if(player == None):
+#             Message.showerror(title='Player Not Found', message='Player not found by this number\nPlease try again')
+#         else:
+#             data = player
+
+    
+
+
+    mainframe = t.CTkFrame(master=master, border_color='gray', corner_radius=15, border_width=5)
+    mainframe.place(relx=0.5, rely=0.5, anchor='center', relwidth=0.95, relheight=0.95)
+
+    searchbar = t.CTkEntry(mainframe, corner_radius=5, placeholder_text='Enter Mobile Number', border_color='gray', border_width=3)
+    searchbar.place(relx=0.5, rely=0.05, relwidth=0.75, relheight=0.05, anchor='center')
+    searchbar.bind('<Return>', search)
 
 def newPlayer(master):
+    global isupdated
 
     def allclear():
 
@@ -82,7 +137,7 @@ def newPlayer(master):
             Message.showerror(title='Error in saving', message='Please enter correct mobile number')
             return
         
-        db = database.DataBase('mongodb://localhost:27017')
+        # db = database.DataBase('mongodb://localhost:27017')
         if(db.searchplayer(number.get()) is not None):
             Message.showerror(title='Error in saving', message='The number is already taken')
             return
@@ -105,6 +160,8 @@ def newPlayer(master):
         allclear()
 
         Message.showinfo('Succesfull', 'Player added successfully')
+
+    isupdated = True
         
 
     def changepic():
@@ -203,13 +260,12 @@ def newPlayer(master):
 
 
 def viewPlayer(master):
-
+    global players, isupdated
     def changefg(e, what):
         if(what == True):
             e.widget.configure(bg = light_green, borderwidth=3)
         else:
             e.widget.configure(bg = '#ffffff', borderwidth=1)
-
 
 
     for widget in master.winfo_children():
@@ -219,13 +275,16 @@ def viewPlayer(master):
     main_frame = t.CTkFrame(master=master, border_width=3, border_color='gray', corner_radius=30)
     main_frame.place(relx=0.5, rely=0.5, anchor='center', relwidth= 0.95, relheight= 0.95)
 
-    search_bar = t.CTkEntry(main_frame, border_width=2, border_color='gray', corner_radius=5, placeholder_text='Enter Mobile Number Or Name', font=t.CTkFont(family='arial', size=16))
+    search_bar = t.CTkEntry(main_frame, border_width=2, border_color='gray', corner_radius=5, placeholder_text='Enter Mobile Number', font=t.CTkFont(family='arial', size=16))
     search_bar.place(relx=0.45, rely=0.1, anchor='center', relwidth= 0.6, relheight= 0.06)
+    search_bar.bind('<Return>', command=lambda e :search(search_bar.get(), master))
 
-    t.CTkButton(main_frame, image=getImage('icons/search.png'), fg_color=light_green, text='', hover_color=dark_green, border_color='gray', border_width=2).place(relx=0.78, rely=0.1, relwidth=0.05, relheight=0.06, anchor='center')
+    t.CTkButton(main_frame, image=getImage('icons/search.png'), fg_color=light_green, text='', hover_color=dark_green, border_color='gray', border_width=2, command=lambda: search(search_bar.get(), master)).place(relx=0.78, rely=0.1, relwidth=0.05, relheight=0.06, anchor='center')
 
-    db = database.DataBase('mongodb://localhost:27017')
-    players = db.getplayers()
+    if(isupdated == True):
+        players = db.getplayers()
+        isupdated = False
+    
 
     viewframe = t.CTkFrame(main_frame, border_width=2, border_color='gray', corner_radius=10)
     viewframe.place(relx=0.5, rely=0.55, relwidth=0.95, relheight=0.8, anchor='center')
@@ -244,25 +303,22 @@ def viewPlayer(master):
             row += 2
 
         if(player['profilepicture'] != ""):
-            t.CTkLabel(frame, image=getImage(player['profilepicture'], resize=(100, 100)), corner_radius=100, text='').pack(side='left', anchor='center', padx=2)
+            t.CTkLabel(frame, image=getImage(player['profilepicture'], resize=(100, 100)), corner_radius=100, text='').pack(side='left', anchor='center', padx=0)
 
         else:
-            t.CTkLabel(frame, image=getImage('icons/user.png', resize=(100, 100)), corner_radius=100, text='').pack(side='left', anchor='center', padx=2)
+            t.CTkLabel(frame, image=getImage('icons/user.png', resize=(100, 100)), corner_radius=100, text='').pack(side='left', anchor='center', padx=0)
 
-        t.CTkLabel(frame, text=f"{player['firstname']}\n{player['role']}\n{player['mobilenumber']}", font=t.CTkFont(family='roboto', size=13), compound='center').pack(anchor='center', side='left', padx=5)
+        t.CTkLabel(frame, text=f"{player['firstname']}\n{player['role']}\n{player['mobilenumber']}", font=t.CTkFont(family='roboto', size=13), compound='center').pack(anchor='center', side='left', padx=0)
 
         frames.append(frame)
         frame_to_number[frame] = player['mobilenumber']
+
 
     for frame in frames:
         frame.bind('<Enter>', lambda e : changefg(e,True))
         frame.bind('<Leave>', lambda e : changefg(e,False))
         frame.bind('<Button-1>', lambda e : showplayer(e, master, frame_to_number))
         
-    
-
-    
-
 
 class App(t.CTk):
 
@@ -345,13 +401,13 @@ class App(t.CTk):
         view_team.place(relx=0.2, rely=i*0.1)
         i += 0.65
 
-        edit_player = t.CTkButton(side_frame, text='Edit Player', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/editplayer.png'),command=lambda:focus(5.9))
-        edit_player.place(relx=0.2, rely=i*0.1)
-        i += 0.65
+        # edit_player = t.CTkButton(side_frame, text='Edit Player', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/editplayer.png'),command=lambda:[focus(5.9), changepage('Edit Player', editPlayer, main_frame)])
+        # edit_player.place(relx=0.2, rely=i*0.1)
+        # i += 0.65
 
-        edit_team = t.CTkButton(side_frame, text='Edit Team', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/editteam.png'),command=lambda:focus(6.55))
-        edit_team.place(relx=0.2, rely=i*0.1)
-        i += 0.65
+        # edit_team = t.CTkButton(side_frame, text='Edit Team', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/editteam.png'),command=lambda:focus(6.55))
+        # edit_team.place(relx=0.2, rely=i*0.1)
+        # i += 0.65
 
         themes = t.CTkButton(side_frame, text='Themes', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/themes.png'),command=lambda:focus(7.2))
         themes.place(relx=0.2, rely=i*0.1)

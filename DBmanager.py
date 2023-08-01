@@ -1,6 +1,6 @@
 import pymongo
-from PIL import Image
-import io
+# from PIL import Image
+# import io
 import gridfs
 # import os
 # import re
@@ -23,13 +23,13 @@ class DataBase():
     def searchplayer(self, number):
 
         players = self.database['players']
-        data = players.find({})
+        player = players.find({'mobilenumber' : number})
 
-        for player in data:
-            if(player['mobilenumber'] == number):
-                return player
-            
-        return None
+        # for player in data:
+        #     if(player['mobilenumber'] == number):
+        #         return player
+        return player
+        # return None
     
     def addplayer(self, data):
 
