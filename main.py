@@ -31,8 +31,9 @@ def showplayer(e, master, frame_to_number):
     for widget in master.winfo_children():
         widget.destroy()
 
-    mainframe = t.CTkFrame(master=master, border_width=3, border_color='gray', corner_radius=30).place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.95, anchor='center')
-    back_btn = t.CTkButton(master=mainframe, text='',image=getImage('icons/arrow.png'), width=10, border_width=0, command=lambda :viewPlayer(master), fg_color=light_green, hover_color=dark_green)
+    mainframe = t.CTkFrame(master=master, border_width=3, border_color='gray', corner_radius=30)
+    mainframe.place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.95, anchor='center')
+    back_btn = t.CTkButton(master=mainframe, text='',image=getImage('icons/arrow.png'), width=10, border_width=0, command=lambda :[mainframe.destroy, viewPlayer(master)], fg_color=light_green, hover_color=dark_green)
     back_btn.place(relx=0.2, rely = 0.2, anchor='center')
 
     t.CTkLabel(master=mainframe, text='hello').place(relx = 0.1, rely=0.1, anchor='center')
