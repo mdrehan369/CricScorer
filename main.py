@@ -56,6 +56,33 @@ def displayplayer(master, data):
     t.CTkLabel(secondFrame, text=f"batting Arm : {data['battingarm']}",font=t.CTkFont(family='lucida', size=16)).grid(row=6,column=0)
     t.CTkLabel(secondFrame, text=data['mobilenumber'],font=t.CTkFont(family='lucida', size=16)).grid(row=7,column=0)
 
+def newTeam(master):
+    team_logo = t.StringVar()
+
+    def changepic():
+        file = askopenfilename(filetypes=(['JPG','*.jpg'], ['JPEG','*.jpeg'], ['PNG','*.png']))
+        if(file is not None and file != ''):
+            team_logo.set(file)
+            addbtn.configure(image=getImage(file, resize=(200,200)))
+            removebtn.place_configure(relx=0.5, rely = 0.85, anchor = 'center')
+
+    for widget in master.winfo_children():
+        widget.destroy()
+
+    mainframe = t.CTkFrame(master, border_color='gray', border_width=5, corner_radius=15)
+    mainframe.place(relx=0.5, rely=0.5, relwidth=0.9, relheight=0.9, anchor="center")
+
+    sideframe = t.CTkFrame(mainframe, corner_radius=10, border_color='gray', border_width=3)
+    sideframe.place(relx=0.35, rely=0.5, anchor='center', relheight=0.8, relwidth=0.3)
+
+    logo = t.CTkLabel(image=getImage('icons/newteam.png', resize=(200,200)), text='')
+    logo.place(relx=0.5, rely=0.3, anchor='center')
+
+    addbtn = t.CTkButton(sideframe, fg_color=light_green, hover_color=dark_green, text='Add Logo')
+    addbtn.place(relx=0.5, rely=0.7, anchor='center')
+
+    removebtn = t.CTkButton(sideframe, fg_color='#ff004f', hover_color='red', text='Remove Logo')
+    # removebtn.place()
 
 def showplayer(e, master, frame_to_number):
     number = frame_to_number[e.widget]
@@ -66,31 +93,10 @@ def search(query, master):
     # query = search_bar.get()
     if(db.searchplayer(query) == None):
         Message.showerror(title='Player Not Found', message='No player found. \nPlease enter the correct and valid mobile number.')
+
     else:
         displayplayer(master, db.searchplayer(query))
 
-# def editPlayer(master):
-#     data = None
-
-
-#     def search(e):
-#         global data
-#         query = searchbar.get()
-#         player = db.searchplayer(query)
-#         if(player == None):
-#             Message.showerror(title='Player Not Found', message='Player not found by this number\nPlease try again')
-#         else:
-#             data = player
-
-    
-
-
-    mainframe = t.CTkFrame(master=master, border_color='gray', corner_radius=15, border_width=5)
-    mainframe.place(relx=0.5, rely=0.5, anchor='center', relwidth=0.95, relheight=0.95)
-
-    searchbar = t.CTkEntry(mainframe, corner_radius=5, placeholder_text='Enter Mobile Number', border_color='gray', border_width=3)
-    searchbar.place(relx=0.5, rely=0.05, relwidth=0.75, relheight=0.05, anchor='center')
-    searchbar.bind('<Return>', search)
 
 def newPlayer(master):
     global isupdated
