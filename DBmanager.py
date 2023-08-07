@@ -54,6 +54,23 @@ class DataBase():
 
         players.insert_one(data)
 
+    def addteam(self, data):
+
+        teams = self.database['teams']
+        if(data['logo'] == ""):
+            teams.insert_one(data)
+            return
+        grid_obj = gridfs.GridFS(self.database)
+
+        with open(data['logo'], 'rb') as f:
+            contents = f.read()
+        
+        image_id = grid_obj.put(contents)
+        data['image_id'] = image_id
+
+        teams.insert_one(data)
+
+
     def getplayers(self):
 
         players = self.database['players'].find({})

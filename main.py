@@ -11,7 +11,7 @@ dark_green = '#00e600'
 light_green = '#66ff66'
 
 t.set_appearance_mode('light')
-
+number = 0
 isupdated = True
 players = None
 db = database.DataBase('mongodb://localhost:27017')
@@ -58,13 +58,65 @@ def displayplayer(master, data):
 
 def newTeam(master):
     team_logo = t.StringVar()
+    # team_name = t.StringVar()
+    # team_players = []
+    menus = []
+    def add():
+        data = {}
+        if(name.get() != ""):
+            data['name'] = name.get()
+        else:
+            Message.showerror('No Team Name', "Please Enter The Team Name")
+
+        data['logo'] = team_logo.get()
+        player_numbers = []
+        for menu in menus:
+            # string = menu.get()
+            matches = re.findall(r"[0-9]{10}", menu.get())
+            if(matches == []):
+                Message.showerror('Select Player', "Please select the player")
+                return
+            
+            player_numbers.append(matches[0])
+
+        data['players'] = player_numbers
+
+        db.addteam(data)
+
+        for menu in menus:
+            menu.destroy()
+
+        addbtn.place_configure(relx=0.5, rely=0.7, anchor='center', relwidth=0.40, relheight=0.07)
+        
+
+    def addplayers():
+        global number
+        if(number == 0):
+            addteam.place(relx= 0.4, rely = 0.9, anchor='center', relwidth=0.15, relheight=0.08)
+
+        players = db.getplayers()
+        options = []
+
+        for player in players:
+            options.append(f"{player['firstname']+' '+player['lastname']}, {player['mobilenumber']}")
+
+        optionmenu = t.CTkOptionMenu(mainframe, values=options)
+        addplayers_btn.place_configure(rely=0.35 + number*0.05)
+        optionmenu.set("Select")
+        optionmenu.place(relx=0.6, rely=0.3 + number*0.05, anchor='center', relheight=0.05, relwidth=0.4)
+        number += 1
+        menus.append(optionmenu)
 
     def changepic():
         file = askopenfilename(filetypes=(['JPG','*.jpg'], ['JPEG','*.jpeg'], ['PNG','*.png']))
         if(file is not None and file != ''):
             team_logo.set(file)
-            addbtn.configure(image=getImage(file, resize=(200,200)))
-            removebtn.place_configure(relx=0.5, rely = 0.85, anchor = 'center')
+            logo.configure(image=getImage(file, resize=(170,170)))
+            removebtn.place_configure(relx=0.5, rely = 0.85, anchor = 'center', relwidth=0.45, relheight=0.1)
+
+    def removepic():
+        logo.configure(image=getImage("icons/newteam.png", resize=(170,170)))
+        removebtn.place_forget()
 
     for widget in master.winfo_children():
         widget.destroy()
@@ -73,16 +125,25 @@ def newTeam(master):
     mainframe.place(relx=0.5, rely=0.5, relwidth=0.9, relheight=0.9, anchor="center")
 
     sideframe = t.CTkFrame(mainframe, corner_radius=10, border_color='gray', border_width=3)
-    sideframe.place(relx=0.35, rely=0.5, anchor='center', relheight=0.8, relwidth=0.3)
+    sideframe.place(relx=0.20, rely=0.5, anchor='center', relheight=0.8, relwidth=0.3)
 
-    logo = t.CTkLabel(image=getImage('icons/newteam.png', resize=(200,200)), text='')
+    logo = t.CTkLabel(sideframe,image=getImage('icons/newteam.png', resize=(170,170)), text='')
     logo.place(relx=0.5, rely=0.3, anchor='center')
 
-    addbtn = t.CTkButton(sideframe, fg_color=light_green, hover_color=dark_green, text='Add Logo')
-    addbtn.place(relx=0.5, rely=0.7, anchor='center')
+    addbtn = t.CTkButton(sideframe, fg_color=light_green, hover_color=dark_green, text='Add Logo', font=t.CTkFont(family='roboto', size=18), border_color='black', border_width=2, text_color='black', command=changepic)
+    addbtn.place(relx=0.5, rely=0.7, anchor='center', relwidth=0.40, relheight=0.07)
 
-    removebtn = t.CTkButton(sideframe, fg_color='#ff004f', hover_color='red', text='Remove Logo')
-    # removebtn.place()
+    removebtn = t.CTkButton(sideframe, fg_color='#ff004f', hover_color='red', text='Remove Logo', font=t.CTkFont(family='roboto', size=18), border_color='black', border_width=2, text_color='black', command=removepic)
+    
+    name = t.CTkEntry(mainframe, placeholder_text='Team Name', placeholder_text_color='gray', border_width=2, border_color='gray', font=t.CTkFont(family = 'lucida', size = 18))
+    name.place(relx = 0.65, rely= 0.15, anchor='center', relwidth = 0.4, relheight=0.075)
+
+    addplayers_btn = t.CTkButton(mainframe, fg_color=light_green, hover_color=dark_green, text='Add Players', font=t.CTkFont(family='roboto', size=18), border_color='black', border_width=2, text_color='black', command=addplayers)
+    addplayers_btn.place(relx=0.65, rely=0.5, anchor='center', relwidth=0.15, relheight=0.1)
+
+    addteam = t.CTkButton(mainframe, text='Add Team', command=add)
+
+
 
 def showplayer(e, master, frame_to_number):
     number = frame_to_number[e.widget]
@@ -394,7 +455,7 @@ class App(t.CTk):
         new_player.place(relx=0.2, rely=i*0.1)
         i += 0.65
 
-        new_team = t.CTkButton(side_frame, text='New Team', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/newteam.png'),command=lambda:focus(3.95))
+        new_team = t.CTkButton(side_frame, text='New Team', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/newteam.png'),command=lambda:[focus(3.95), changepage("New Team", newTeam, main_frame)])
         new_team.place(relx=0.2, rely=i*0.1)
         i += 0.65
 
