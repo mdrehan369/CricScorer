@@ -92,5 +92,11 @@ class DataBase():
         
     def searchplayer(self, number):
         return self.database['players'].find_one({'mobilenumber' : number})
+    
+    def searchTeam(self, name):
+        return self.database['teams'].find_one({'name' : name})
+    
+    def getAllTeams(self):
+        return self.database['teams'].find()
 
     

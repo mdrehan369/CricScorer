@@ -7,6 +7,7 @@ import DBmanager as database
 import re
 import tkinter as tk
 
+
 dark_green = '#00e600'
 light_green = '#66ff66'
 
@@ -56,17 +57,67 @@ def displayplayer(master, data):
     t.CTkLabel(secondFrame, text=f"batting Arm : {data['battingarm']}",font=t.CTkFont(family='lucida', size=16)).grid(row=6,column=0)
     t.CTkLabel(secondFrame, text=data['mobilenumber'],font=t.CTkFont(family='lucida', size=16)).grid(row=7,column=0)
 
+def showTeam(e, master, frame_to_number):
+    name = frame_to_number[e.widget]
+    data = db.searchTeam(name=name)
+    displayTeam(master, data)
+
+def displayTeam(master, data):
+    for widget in master.winfo_children():
+        widget.destroy()
+
+    mainframe = t.CTkFrame(master=master, border_width=3, border_color='gray', corner_radius=30)
+    mainframe.place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.95, anchor='center')
+    back_btn = t.CTkButton(master=mainframe, text='',image=getImage('icons/arrow.png'), width=10, border_width=0, command=lambda :[mainframe.destroy, viewTeam(master)], fg_color=light_green, hover_color=dark_green)
+    back_btn.place(relx=0.05, rely = 0.05, anchor='center')
+
+    if(data['logo'] != ''):
+        try:
+            t.CTkLabel(master=mainframe, image=getImage(data['logo'], resize=(200, 200)), text='').place(relx = 0.5, rely=0.2, anchor='center')
+        except:
+             t.CTkLabel(master=mainframe, image=getImage('icons/user.png', resize=(200, 200)), text='').place(relx = 0.5, rely=0.2, anchor='center')
+    else:
+        t.CTkLabel(master=mainframe, image=getImage('icons/user.png', resize=(200, 200)), text='').place(relx = 0.5, rely=0.2, anchor='center')
+
+    secondFrame = t.CTkFrame(mainframe, border_width=3, border_color='gray', corner_radius=10)
+    secondFrame.place(relx=0.5, rely=0.7, relwidth=0.65, relheight=0.55, anchor='center')
+
+    secondFrame.columnconfigure(0, weight=40)
+    secondFrame.columnconfigure(1, weight=60)
+
+    for i in range(0,13):
+        secondFrame.rowconfigure(i, weight=6)
+
+    t.CTkLabel(secondFrame, text=data['name'],font=t.CTkFont(family='lucida', size=16), anchor='w').grid(row=1,column=0)
+    t.CTkLabel(secondFrame, text=f"Captain : {data['captain']}",font=t.CTkFont(family='lucida', size=16),anchor='w').grid(row=2,column=0)
+    t.CTkLabel(secondFrame, text=f"Vice Captain{data['vc_captain']}",font=t.CTkFont(family='lucida', size=16)).grid(row=3,column=0)
+    index = 4
+    for player in data['players']:
+        t.CTkLabel(secondFrame, text=f"{db.searchplayer(player)['firstname']},{player}",font=t.CTkFont(family='lucida', size=15)).grid(row=index,column=0)
+        index += 1
+
 def newTeam(master):
     team_logo = t.StringVar()
     # team_name = t.StringVar()
-    # team_players = []
+    options = []
+    team_players = []
     menus = []
+    players = db.getplayers()
+
+    for player in players:
+        options.append(f"{player['firstname']+' '+player['lastname']}, {player['mobilenumber']}")
+
     def add():
+        global number
         data = {}
+        if(db.searchteam(name.get()) != None):
+            Message.showerror("Team already registered", "Team with the given name is already registered")
+            return
         if(name.get() != ""):
             data['name'] = name.get()
         else:
             Message.showerror('No Team Name', "Please Enter The Team Name")
+            return
 
         data['logo'] = team_logo.get()
         player_numbers = []
@@ -81,29 +132,48 @@ def newTeam(master):
 
         data['players'] = player_numbers
 
+        if(captain.get() != ""):
+            data['captain'] = captain.get()
+        else:
+            Message.showerror('No Captain Selected', "Please select the captain")
+            return
+        
+        if(vc_captain.get() != ""):
+            data['vc_captain'] = vc_captain.get()
+        else:
+            Message.showerror('No Vice Captain Selected', "Please select the vice captain")
+            return
+
         db.addteam(data)
 
         for menu in menus:
             menu.destroy()
 
         addbtn.place_configure(relx=0.5, rely=0.7, anchor='center', relwidth=0.40, relheight=0.07)
+        addteam.place_forget()
+        logo.configure(image=getImage('icons/newteam.png', resize=(170,170)))
+        name.delete(0, "end")
+        number = 0
+        captain.place_forget()
+        vc_captain.place_forget()
         
 
     def addplayers():
         global number
+        if(number == 11):
+            Message.showerror("Squad Full", "Already 11 players are selected")
+            return
+        
         if(number == 0):
-            addteam.place(relx= 0.4, rely = 0.9, anchor='center', relwidth=0.15, relheight=0.08)
+            addteam.place(relx= 0.4, rely = 0.95, anchor='center', relwidth=0.15, relheight=0.07)
+            captain.place_configure(relx=0.83, rely=0.4, anchor="center", relheight=0.05, relwidth=0.25)
+            vc_captain.place_configure(relx=0.83, rely=0.5, anchor="center", relheight=0.05, relwidth=0.25)
 
-        players = db.getplayers()
-        options = []
 
-        for player in players:
-            options.append(f"{player['firstname']+' '+player['lastname']}, {player['mobilenumber']}")
-
-        optionmenu = t.CTkOptionMenu(mainframe, values=options)
-        addplayers_btn.place_configure(rely=0.35 + number*0.05)
+        optionmenu = t.CTkOptionMenu(mainframe, values=options, fg_color=light_green, dropdown_fg_color='white', dropdown_hover_color=light_green, corner_radius=5, button_hover_color=dark_green, button_color=light_green, font=t.CTkFont(family='lucida', size=16), text_color='black')
+        addplayers_btn.place_configure(rely=0.35 + number*0.06, relx=0.6)
         optionmenu.set("Select")
-        optionmenu.place(relx=0.6, rely=0.3 + number*0.05, anchor='center', relheight=0.05, relwidth=0.4)
+        optionmenu.place(relx=0.55, rely=0.25 + number*0.06, anchor='center', relheight=0.05, relwidth=0.25)
         number += 1
         menus.append(optionmenu)
 
@@ -138,11 +208,16 @@ def newTeam(master):
     name = t.CTkEntry(mainframe, placeholder_text='Team Name', placeholder_text_color='gray', border_width=2, border_color='gray', font=t.CTkFont(family = 'lucida', size = 18))
     name.place(relx = 0.65, rely= 0.15, anchor='center', relwidth = 0.4, relheight=0.075)
 
-    addplayers_btn = t.CTkButton(mainframe, fg_color=light_green, hover_color=dark_green, text='Add Players', font=t.CTkFont(family='roboto', size=18), border_color='black', border_width=2, text_color='black', command=addplayers)
-    addplayers_btn.place(relx=0.65, rely=0.5, anchor='center', relwidth=0.15, relheight=0.1)
+    addplayers_btn = t.CTkButton(mainframe, fg_color=light_green, hover_color=dark_green, text='Add Player', font=t.CTkFont(family='roboto', size=18), border_color='black', border_width=2, text_color='black', command=addplayers)
+    addplayers_btn.place(relx=0.65, rely=0.5, anchor='center', relwidth=0.12, relheight=0.07)
 
-    addteam = t.CTkButton(mainframe, text='Add Team', command=add)
+    addteam = t.CTkButton(mainframe, text='Add Team', command=add, fg_color=light_green, hover_color=dark_green, border_color='black', text_color='black', font=t.CTkFont(family='lucida', size=18), border_width=2, corner_radius=5)
 
+    captain = t.CTkOptionMenu(mainframe, values=options, fg_color=light_green, dropdown_fg_color='white', dropdown_hover_color=light_green, corner_radius=5, button_hover_color=dark_green, button_color=light_green, font=t.CTkFont(family='lucida', size=16), text_color='black')
+    captain.set("Select Captain")
+
+    vc_captain = t.CTkOptionMenu(mainframe, values=options, fg_color=light_green, dropdown_fg_color='white', dropdown_hover_color=light_green, corner_radius=5, button_hover_color=dark_green, button_color=light_green, font=t.CTkFont(family='lucida', size=16), text_color='black')
+    vc_captain.set("Select Vice Captain")
 
 
 def showplayer(e, master, frame_to_number):
@@ -325,14 +400,14 @@ def newPlayer(master):
 
     t.CTkButton(infoframe, text='Save', border_color='gray', fg_color=light_green, hover_color=dark_green, corner_radius=5, command=savedata, border_width=2, font=t.CTkFont(family='roboto', size= 18), text_color='black').place(relx=0.5, rely=0.8, relwidth=0.15, relheight=0.08, anchor='center')
 
-
-def viewPlayer(master):
-    global players, isupdated
-    def changefg(e, what):
+def changefg(e, what):
         if(what == True):
             e.widget.configure(bg = light_green, borderwidth=3)
         else:
             e.widget.configure(bg = '#ffffff', borderwidth=1)
+
+def viewPlayer(master):
+    global players, isupdated
 
 
     for widget in master.winfo_children():
@@ -386,6 +461,54 @@ def viewPlayer(master):
         frame.bind('<Leave>', lambda e : changefg(e,False))
         frame.bind('<Button-1>', lambda e : showplayer(e, master, frame_to_number))
         
+
+def viewTeam(master):
+    for widget in master.winfo_children():
+        widget.destroy()
+
+    mainframe = t.CTkFrame(master, border_color='gray', border_width=3, corner_radius=10)
+    mainframe.place(relx=0.5, rely=0.5, anchor='center', relwidth=0.95, relheight= 0.95)
+
+    t.CTkEntry(mainframe, placeholder_text="Enter the name of the team...", placeholder_text_color='gray', border_color="gray", border_width=2, corner_radius=5, font=t.CTkFont(family="lucida", size=16)).place(relx=0.45, rely=0.1, relwidth=0.65, relheight=0.07, anchor="center")
+
+    t.CTkButton(mainframe, text="", image=getImage('icons/search.png'), fg_color=light_green, hover_color=dark_green, border_color="black", border_width=2, corner_radius=5).place(relx=0.82, rely=0.1, anchor="center", relwidth=0.05, relheight=0.07)
+
+    teams = db.getAllTeams()
+
+    viewframe = t.CTkFrame(mainframe, border_width=2, border_color='gray', corner_radius=10)
+    viewframe.place(relx=0.5, rely=0.55, relwidth=0.95, relheight=0.8, anchor='center')
+    row = 1
+    col = 1
+    frame_to_number = {}
+    frames = []
+
+    for team in teams:
+        frame = tk.Frame(viewframe, borderwidth=1, relief='sunken')
+        frame.place(relx=col*0.125, rely=row*0.125, anchor='center', relwidth=0.23, relheight= 0.23)
+        col += 2
+        if(col == 9):
+            col = 1
+            row += 2
+
+        if(team['logo'] != ""):
+            try:
+                t.CTkLabel(frame, image=getImage(team['logo'], resize=(100, 100)), corner_radius=100, text='').pack(side='left', anchor='center', padx=0)
+            except:
+                t.CTkLabel(frame, image=getImage('icons/user.png', resize=(100, 100)), corner_radius=100, text='').pack(side='left', anchor='center', padx=0)
+
+        else:
+            t.CTkLabel(frame, image=getImage('icons/user.png', resize=(100, 100)), corner_radius=100, text='').pack(side='left', anchor='center', padx=0)
+
+        t.CTkLabel(frame, text=f"{team['name']}\n{team['captain']}\n{team['vc_captain']}", font=t.CTkFont(family='roboto', size=13), compound='center').pack(anchor='center', side='left', padx=0)
+
+        frames.append(frame)
+        frame_to_number[frame] = team['name']
+
+
+    for frame in frames:
+        frame.bind('<Enter>', lambda e : changefg(e,True))
+        frame.bind('<Leave>', lambda e : changefg(e,False))
+        frame.bind('<Button-1>', lambda e : showTeam(e, master, frame_to_number))
 
 class App(t.CTk):
 
@@ -464,7 +587,7 @@ class App(t.CTk):
         i += 0.65
 
 
-        view_team = t.CTkButton(side_frame, text='View Team', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/viewteam.png'),command=lambda:focus(5.25))
+        view_team = t.CTkButton(side_frame, text='View Team', font=t.CTkFont(family='lucida',size= 16), fg_color=light_green, text_color='black', hover_color=dark_green, compound='left', border_color=light_green, width=50, image=getImage('icons/viewteam.png'),command=lambda:[focus(5.25), changepage("View Team", viewTeam, main_frame)])
         view_team.place(relx=0.2, rely=i*0.1)
         i += 0.65
 
